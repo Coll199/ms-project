@@ -9,6 +9,8 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
 
+
+
 # Fetch the service account key JSON file contents
 cred = credentials.Certificate('/home/pi/Desktop/MFRC522-python/passengeranalytics.json')
 
@@ -20,6 +22,8 @@ firebase_admin.initialize_app(cred, {
 # As an admin, the app has access to read and write all data, regradless of Security Rules
 ref = db.reference('users')
 snapshot = ref.get()
+log_ref = db.reference('log')
+station_ref = db.reference('stations')
 
 def getExpTime(uid):
     for key, val in snapshot.iteritems():
@@ -28,6 +32,20 @@ def getExpTime(uid):
     #print('uid:{0} username:{1} perm:{2}'.format(key, val.get('username'), val.get('permission')))
 continue_reading = True
 
+def getAboard(uid):
+    for key, val in snapshot.iteritems():
+       # print(val)
+        if(key  ==  uid):
+            return val.get('isAboard')
+
+def getStation():
+        return (station_ref.get().get('currentLocation'))#.get('currentLocation')
+     #   return val.get('currentLocation')
+    
+def getUserName(uid):
+    for key, val in snapshot.iteritems():
+        if(key  ==  uid):
+            return val.get('username')
 # Capture SIGINT for cleanup when the script is aborted
 def end_read(signal,frame):
     global continue_reading
@@ -83,12 +101,43 @@ while continue_reading:
             MIFAREReader.MFRC522_Read(8)
             MIFAREReader.MFRC522_Read(9)
             print "Expiration time:"+(str(getExpTime(final)))
+            users_ref = ref.child(final)
             currentTime = int(time.time())
+            print(getStation())
             if ( getExpTime(final) - currentTime > 0 ):
                 print "Card is valid "
             else:
                 print "Card is invalid"
+            if ( getAboard(final) == False ):
+                log_ref = log_ref.push()
+                log_ref.set({
+                    'username' : getUserName(final),
+                    'time' : currentTime,
+                    'currentLocation' : getStation(),
+                    'gotAboard' : False
+                    })
+                users_ref.update({
+                    'isAboard' : True
+                    })
+                print " HE GOT ON "
+            elif( getAboard(final) == True ):
+                log_ref = log_ref.push()
+                log_ref.set({
+                    'username' : getUserName(final),
+                    'time' : currentTime,
+                    'currentLocation' : getStation(),
+                    'gotAboard' : True
+                    })
+                users_ref.update({
+                    'isAboard' : False
+                    })
+                print " HE GOT OFF "
             MIFAREReader.MFRC522_StopCrypto1()
-            continue_reading = False
+            ref = db.reference('users')
+            snapshot = ref.get()
+            station_ref = db.reference('stations')
+            log_ref = db.reference('log')
+            continue_reading = True
+            
         else:
             print "Authentication error"
