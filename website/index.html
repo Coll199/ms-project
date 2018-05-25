@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.0.3/firebase.js"></script>
+    <script src="utils/date.format.js"></script>
+    <script>
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyDCUA-JYU_hC4X7gy1WMjclJhmG3RpK1iM",
+            authDomain: "passengeranalytics-5640e.firebaseapp.com",
+            databaseURL: "https://passengeranalytics-5640e.firebaseio.com",
+            projectId: "passengeranalytics-5640e",
+            storageBucket: "passengeranalytics-5640e.appspot.com",
+            messagingSenderId: "764919522973"
+        };
+        firebase.initializeApp(config);
+
+
+        var query = firebase.database().ref("log").orderByKey();
+
+        var datestampsOn = [];
+        var datestampsOff = [];
+        var stationsOn = [];
+        var stationsOff = [];
+
+        query.once("value")
+            .then(function (snapshot) {
+                snapshot.forEach(function (childSnapshot) {
+                    // key will be unique id
+                    var key = childSnapshot.key;
+                    // childData will be the actual contents of the child
+                    var childData = childSnapshot.val();
+                    console.log(childData);
+
+                    var formattedTime=new Date(childData.time * 1000).format('d-m-Y H:i:s');
+                    if(childData.gotAboard == true){
+                        //Put data into arrays when getting on
+                        datestampsOn.push(formattedTime);
+                        stationsOn.push(childData.currentLocation);
+                    }
+                    else{
+                        //Put data into arrays when getting off
+                        datestampsOff.push(formattedTime);
+                        stationsOff.push(childData.currentLocation);
+                    }
+
+                });
+                Plotly.plot('graph1', [{
+                    x: datestampsOn,
+                    y: stationsOn,
+                    mode: 'lines+markers',
+                }], {
+                    xaxis: {
+                        title: 'Time'
+                    },
+                    yaxis: {
+                        title: 'Stations'
+                    }
+                    });
+
+                Plotly.plot('graph2', [{
+                    x: datestampsOff,
+                    y: stationsOff,
+                    mode: 'lines+markers',
+                }], {
+                    xaxis: {
+                        title: 'Time'
+                    },
+                    yaxis: {
+                        title: 'Stations'
+                    }
+                    });
+                //Debug Info
+                console.log(datestampsOn);
+                console.log(datestampsOff);
+                console.log(stationsOn);
+                console.log(stationsOff);
+            });
+    </script>
+</head>
+<body>
+    <h1 style="text-align: center">Passengers and Stations (On)</h1>
+    <div id="graph1" style="width:100%;height:350px;"></div>
+    <h1 style="text-align: center">Passengers and Stations (Off)</h1>
+    <div id="graph2" style="width:100%;height:350px;"></div>
+</body>
+</html>
