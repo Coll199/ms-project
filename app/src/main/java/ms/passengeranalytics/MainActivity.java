@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             // Sign in success, update UI with the signed-in user's information
                             Log.d(TAG, "createUserWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
-                            writeNewUser(user,0L);
+                            writeNewUser(user,0L, false);
                             updateUI(user);
                         } else {
                             // If sign in fails, display a message to the user.
@@ -209,9 +209,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     // [START basic_write]
-    private void writeNewUser(FirebaseUser firebaseUser, Long expirationTime) {
+    private void writeNewUser(FirebaseUser firebaseUser, Long expirationTime,boolean isAboard) {
         String username = usernameFromEmail(firebaseUser.getEmail());
-        User user = new User(username, expirationTime);
+        User user = new User(username, expirationTime, isAboard);
 
         mDatabase.child("users").child(firebaseUser.getUid()).setValue(user);
     }
